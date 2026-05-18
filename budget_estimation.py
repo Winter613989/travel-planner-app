@@ -91,42 +91,23 @@ def budget_calc(org, dest, days, date:list , people_number=None, local_constrain
             elif grain == "state":
                 if len(flight_data[flight_data['FlightDate'] == date[0]]) < 10:
                     raise ValueError("No flight data available for the given constraints.")
-        
-        if local_constraint['room'] == 'entire room':
-            hotel_data = hotel_data[hotel_data['room type'] == 'Entire home/apt']
-        elif local_constraint['room'] == 'private room':
-            hotel_data = hotel_data[hotel_data['room type'] == 'Private room']
-        elif local_constraint['room'] == 'shared room':
-            hotel_data = hotel_data[hotel_data['room type'] == 'Shared room']
+                    
+    # Calculate budget ranges
+    flight_prices = list(flight_data['Price'])
+    hotel_prices = list(hotel_data['price'])
+    restaurant_prices = list(restaurant_data['average_cost'])
 
-        if local_constraint['cuisine'] != 'not specify':
-            restaurant_data = restaurant_data[restaurant_data['Cuisine'] == local_constraint['cuisine']]
-
-    # Calculate budgets
-    flight_prices = flight_data['Price'].tolist()
-    hotel_prices = hotel_data['price'].tolist()
-    restaurant_prices = restaurant_data['average cost'].tolist()
-
-    lowest_budget = (
-        estimate_budget(flight_prices, "lowest") * multipliers[days]["flight"] +
-        estimate_budget(hotel_prices, "lowest") * multipliers[days]["hotel"] +
-        estimate_budget(restaurant_prices, "lowest") * multipliers[days]["restaurant"]
-    )
-
-    highest_budget = (
-        estimate_budget(flight_prices, "highest") * multipliers[days]["flight"] +
-        estimate_budget(hotel_prices, "highest") * multipliers[days]["hotel"] +
-        estimate_budget(restaurant_prices, "highest") * multipliers[days]["restaurant"]
-    )
-
-    average_budget = (
-        estimate_budget(flight_prices, "average") * multipliers[days]["flight"] +
-        estimate_budget(hotel_prices, "average") * multipliers[days]["hotel"] +
-        estimate_budget(restaurant_prices, "average") * multipliers[days]["restaurant"]
-    )
-
-    return {
-        "lowest_budget": lowest_budget,
-        "highest_budget": highest_budget,
-        "average_budget": average_budget
+    budgets = {
+        "lowest": 0,
+        "highest": 0,
+        "average": 0
     }
+    
+    for mode in ["lowest", "highest", "average"]:
+        flight_budget = estimate_budget(flight_prices, mode) * multipliers[days]["flight"]
+        hotel_budget = estimate_budget(hotel_prices, mode) * multipliers[days]["hotel"]
+        restaurant_budget = estimate_budget(restaurant_prices, mode) * multipliers[days]["restaurant"]
+        
+        budgets[mode] = round(flight_budget + hotel_budget + restaurant_budget, 2)
+    
+    return budgets
